@@ -41,7 +41,7 @@ def authenticate_user():
                 if st.session_state["authenticated"]:
                     st.rerun()
             st.stop()
-            return False
+            # return False
         else:
             return True
 

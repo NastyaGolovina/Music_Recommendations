@@ -176,7 +176,7 @@ study.optimize(objective, n_trials=10)
 print(f"\nBest parameters (Optuna): {study.best_params}")
 print(f"Best CV score  (Optuna): {study.best_value:.4f}")
 
-with mlflow.start_run(run_name="Experiment 3 - Optuna KNN"):
+with mlflow.start_run(run_name="Experiment 1 - Optuna KNN"):
     best_params = study.best_params.copy()
     knn_optuna = KNeighborsClassifier(**best_params)
     knn_optuna.fit(X_train_scaled, y_train)
@@ -194,16 +194,12 @@ with mlflow.start_run(run_name="Experiment 3 - Optuna KNN"):
     mlflow.log_metric("Best_CV_score", study.best_value)
     mlflow.log_text(classification_report(y_test, y_pred_optuna), "classification_report.txt")
 
-    print(f"\nExperiment 3 - Optuna KNN")
+    print(f"\nExperiment 1 - Optuna KNN")
     print(f"  Accuracy : {acc_optuna:.4f}")
     print(classification_report(y_test, y_pred_optuna))
 
 
-print("\n" + "="*50)
-print("SUMMARY")
-print("="*50)
 # print(f"  Baseline    Accuracy : {acc:.4f}")
 # print(f"  GridSearchCV Accuracy: {acc_grid:.4f}")
 print(f"  Optuna      Accuracy : {acc_optuna:.4f}")
-print("="*50)
 print("\nAll experiments completed!")

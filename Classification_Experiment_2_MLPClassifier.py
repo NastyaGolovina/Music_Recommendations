@@ -68,7 +68,7 @@ experiments = [
     {
         "run_name": "MLP - baseline",
         "params": {
-            "hidden_layer_sizes": (100,),       # 1 слой 100 нейронов
+            "hidden_layer_sizes": (100,),
             "activation":         "relu",
             "max_iter":           200,
             "random_state":       42,
@@ -77,7 +77,7 @@ experiments = [
     {
         "run_name": "MLP - deeper network",
         "params": {
-            "hidden_layer_sizes": (100, 50),    # 2 слоя
+            "hidden_layer_sizes": (100, 50),
             "activation":         "relu",
             "max_iter":           200,
             "random_state":       42,
@@ -87,7 +87,7 @@ experiments = [
         "run_name": "MLP - tanh activation",
         "params": {
             "hidden_layer_sizes": (100,),
-            "activation":         "tanh",       # другая функция активации
+            "activation":         "tanh",
             "max_iter":           200,
             "random_state":       42,
         }

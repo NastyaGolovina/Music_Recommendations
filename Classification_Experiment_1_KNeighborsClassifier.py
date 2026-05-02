@@ -26,8 +26,8 @@ music = pd.read_csv("music_classification.csv", dtype={
 print("music_classification.csv -> shape :", music.shape)
 
 
-# music = music.sample(frac=0.05, random_state=42).reset_index(drop=True)
-# print("After sampling -> shape :", music.shape)
+music = music.sample(frac=0.05, random_state=42).reset_index(drop=True)
+print("After sampling -> shape :", music.shape)
 
 train = music[music["year"] < 2021].copy()
 test  = music[music["year"] >= 2021].copy()
@@ -155,14 +155,14 @@ mlflow.sklearn.autolog(log_models=False)
 
 
 def objective(trial):
-    n_neighbors = trial.suggest_categorical("n_neighbors", [3, 5, 7, 10, 15, 19, 22, 30, 50])
-    weights     = trial.suggest_categorical("weights",     ["uniform", "distance"])
-    algorithm   = trial.suggest_categorical("algorithm",   ["auto", "ball_tree", "kd_tree", "brute"])
+    n_neighbors = trial.suggest_categorical("n_neighbors", [3, 5, 10, 20, 30, 50])
+    # weights     = trial.suggest_categorical("weights",     ["uniform", "distance"])
+    # algorithm   = trial.suggest_categorical("algorithm",   ["auto", "ball_tree", "kd_tree", "brute"])
 
     model = KNeighborsClassifier(
         n_neighbors=n_neighbors,
-        weights=weights,
-        algorithm=algorithm
+        # weights=weights,
+        # algorithm=algorithm
     )
     score = cross_val_score(
         model, X_train_scaled, y_train,
@@ -188,8 +188,8 @@ with mlflow.start_run(run_name="Experiment 1 - Optuna KNN"):
     mlflow.log_param("split",       "time-based year<2021")
     mlflow.log_param("sample_frac", 0.05)
     mlflow.log_param("n_neighbors", best_params["n_neighbors"])
-    mlflow.log_param("weights",     best_params["weights"])
-    mlflow.log_param("algorithm",   best_params["algorithm"])
+    # mlflow.log_param("weights",     best_params["weights"])
+    # mlflow.log_param("algorithm",   best_params["algorithm"])
     mlflow.log_metric("Accuracy",      acc_optuna)
     mlflow.log_metric("Best_CV_score", study.best_value)
     mlflow.log_text(classification_report(y_test, y_pred_optuna), "classification_report.txt")

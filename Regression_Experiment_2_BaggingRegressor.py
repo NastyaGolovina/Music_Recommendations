@@ -57,14 +57,16 @@ drop_cols = ["streams", "artist", "main_genre", "region"]
 X_train = train.drop(columns=drop_cols)
 X_test  = test.drop(columns=drop_cols)
 
+print(" X_train -> shape :", X_train.shape)
+print("X_test -> shape :", X_test.shape)
 
 # scaler = StandardScaler()
 # scaler.fit(X_train)
 # X_train_scaled = scaler.transform(X_train).astype("float32")
 # X_test_scaled  = scaler.transform(X_test).astype("float32")
-
-print(" X_train_scaled -> shape :", X_train_scaled.shape)
-print("X_test_scaled -> shape :", X_test_scaled.shape)
+#
+# print(" X_train_scaled -> shape :", X_train_scaled.shape)
+# print("X_test_scaled -> shape :", X_test_scaled.shape)
 
 
 

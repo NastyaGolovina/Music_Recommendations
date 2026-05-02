@@ -24,9 +24,9 @@ music = pd.read_csv("music_regression.csv", dtype={
 
 print("music_regression.csv -> shape :", music.shape)
 
-# # Sample to reduce training time
-# music = music.sample(frac=0.2, random_state=42).reset_index(drop=True)
-# print("After sampling -> shape :", music.shape)
+# Sample to reduce training time
+music = music.sample(frac=0.2, random_state=42).reset_index(drop=True)
+print("After sampling -> shape :", music.shape)
 
 train = music[music["year"] < 2021].copy()
 test  = music[music["year"] >= 2021].copy()
@@ -72,8 +72,8 @@ experiments = [
         "run_name": "Stacking - LR + KNN + RF -> LR",
         "estimators": [
             ("lr",  LinearRegression()),
-            ("knn", KNeighborsRegressor(n_neighbors=5)),
-            ("rf",  RandomForestRegressor(n_estimators=100, random_state=42)),
+            ("dt",  DecisionTreeRegressor(max_depth=10, min_samples_leaf=50, random_state=42)),
+            ("rf",  RandomForestRegressor(n_estimators=50, max_depth=10, min_samples_leaf=50, n_jobs=4, random_state=42)),
         ],
         "final_estimator": LinearRegression(),
         "final_estimator_name": "LinearRegression",
@@ -118,7 +118,7 @@ for exp in experiments:
         stack_reg = StackingRegressor(
             estimators=exp["estimators"],
             final_estimator=exp["final_estimator"],
-            n_jobs=-1
+            n_jobs=4
         )
 
         stack_reg.fit(X_train_scaled, y_train)
@@ -129,11 +129,11 @@ for exp in experiments:
         r2   = r2_score(y_test, y_pred)
 
         mlflow.log_params({
-            "base_estimators":   [name for name, _ in exp["estimators"]],
-            "final_estimator":   exp["final_estimator_name"],
-            "split":             "time-based year<2021",
-            "target":            "log1p(streams)",
-            "sample_frac":       0.2,
+            "base_estimators":        [name for name, _ in exp["estimators"]],
+            "final_estimator_name":   exp["final_estimator_name"],
+            "split":                  "time-based year<2021",
+            "target":                 "log1p(streams)",
+            "sample_frac":            0.2,
         })
         mlflow.log_metric("RMSE", rmse)
         mlflow.log_metric("R2",   r2)

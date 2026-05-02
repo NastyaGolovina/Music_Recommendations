@@ -21,9 +21,9 @@ music = pd.read_csv("music_regression.csv", dtype={
 
 print("music_regression.csv -> shape :", music.shape)
 
-# # Sample to reduce training time
-# music = music.sample(frac=0.2, random_state=42).reset_index(drop=True)
-# print("After sampling -> shape :", music.shape)
+# Sample to reduce training time
+music = music.sample(frac=0.2, random_state=42).reset_index(drop=True)
+print("After sampling -> shape :", music.shape)
 
 
 train = music[music["year"] < 2021].copy()
@@ -82,20 +82,20 @@ mlflow.sklearn.autolog(log_models=False)
 
 experiments = [
     # {"run_name": "Bagging - n_estimators=10",  "n_estimators": 10,  "max_samples": 0.8},
-    # {"run_name": "Bagging - n_estimators=50",  "n_estimators": 50,  "max_samples": 0.8},
-    {"run_name": "Bagging - n_estimators=100", "n_estimators": 100, "max_samples": 0.6},
+     {"run_name": "Bagging - n_estimators=50",  "n_estimators": 50,  "max_samples": 0.8},
+    #{"run_name": "Bagging - n_estimators=100", "n_estimators": 100, "max_samples": 0.6},
 ]
 
 for exp in experiments:
     with mlflow.start_run(run_name=exp["run_name"]):
 
         bag_reg = BaggingRegressor(
-            estimator=DecisionTreeRegressor(random_state=42),
+            estimator=DecisionTreeRegressor(max_depth=10, min_samples_leaf=50, random_state=42),
             n_estimators=exp["n_estimators"],
             max_samples=exp["max_samples"],
             bootstrap=True,
             random_state=42,
-            n_jobs=-1
+            n_jobs=4
         )
 
         bag_reg.fit(X_train, y_train)

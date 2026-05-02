@@ -41,18 +41,24 @@ global_mean = y_train.mean()
 
 
 
+# For each artist, calculate the proportion of their songs that are hits (0.0 to 1.0)
+# Example: Drake → 0.85 means 85% of his songs are classified as hits
+# Unknown artists in test set receive the global average (fallback)
 artist_mean = train.groupby("artist")["is_hit"].mean()
 train["artist_te"] = train["artist"].map(artist_mean).fillna(global_mean)
 test["artist_te"]  = test["artist"].map(artist_mean).fillna(global_mean)
 
+# For each genre, calculate the proportion of hits
+# Example: pop → 0.61 means 61% of pop songs are hits
 genre_mean = train.groupby("main_genre")["is_hit"].mean()
 train["genre_te"] = train["main_genre"].map(genre_mean).fillna(global_mean)
 test["genre_te"]  = test["main_genre"].map(genre_mean).fillna(global_mean)
 
+# For each region, calculate the proportion of hits
+# Example: United States → 0.74 means 74% of US chart songs are hits
 region_mean = train.groupby("region")["is_hit"].mean()
 train["region_te"] = train["region"].map(region_mean).fillna(global_mean)
 test["region_te"]  = test["region"].map(region_mean).fillna(global_mean)
-
 
 drop_cols = ["streams", "is_hit", "artist", "main_genre", "region"]
 

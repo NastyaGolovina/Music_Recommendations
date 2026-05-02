@@ -35,18 +35,21 @@ y_test  = np.log1p(test["streams"])
 
 global_mean = y_train.mean()
 
-
+# For each artist, calculate the average log1p(streams)
+# log1p compresses large stream counts to avoid outliers dominating the mean
+# Example: Drake → 13.2, unknown artist → global_mean (fallback)
 artist_mean = train.groupby("artist")["streams"].apply(lambda x: np.log1p(x).mean())
 train["artist_te"] = train["artist"].map(artist_mean).fillna(global_mean)
 test["artist_te"]  = test["artist"].map(artist_mean).fillna(global_mean)
 
-
+# For each genre, calculate the average log1p(streams)
+# Captures how streamable each genre is on average
 genre_mean = train.groupby("main_genre")["streams"].apply(lambda x: np.log1p(x).mean())
 train["genre_te"] = train["main_genre"].map(genre_mean).fillna(global_mean)
 test["genre_te"]  = test["main_genre"].map(genre_mean).fillna(global_mean)
 
-
-
+# For each region, calculate the average log1p(streams)
+# Replaces 70 one-hot columns with a single numeric column
 region_mean = train.groupby("region")["streams"].apply(lambda x: np.log1p(x).mean())
 train["region_te"] = train["region"].map(region_mean).fillna(global_mean)
 test["region_te"]  = test["region"].map(region_mean).fillna(global_mean)

@@ -203,3 +203,54 @@ with mlflow.start_run(run_name="Experiment 1 - Optuna KNN"):
 # print(f"  GridSearchCV Accuracy: {acc_grid:.4f}")
 print(f"  Optuna      Accuracy : {acc_optuna:.4f}")
 print("\nAll experiments completed!")
+
+
+#
+# ### Data Shapes
+# - Original dataset: (26,173,485, 18)
+# - After sampling: (1,308,674, 18)
+#
+# - X_train: (1,023,318, 16)
+# - X_test: (285,356, 16)
+#
+# - X_train_scaled: (1,023,318, 16)
+# - X_test_scaled: (285,356, 16)
+
+# ### Optuna Optimization (KNN)
+# - Best parameters:
+#   - n_neighbors = 5
+#
+# - Best CV score:
+#   - 0.9669
+
+# ### Experiment 1 — Optuna KNN Results
+#
+# - Accuracy: 0.9472
+#
+# Classification report:
+#
+# - Class 0
+#   - Precision: 0.96
+#   - Recall: 0.98
+#   - F1-score: 0.97
+#   - Support: 262,115
+#
+# - Class 1
+#   - Precision: 0.74
+#   - Recall: 0.54
+#   - F1-score: 0.62
+#   - Support: 23,241
+
+# - Overall accuracy: 0.95
+# - Macro avg:
+#   - Precision: 0.85
+#   - Recall: 0.76
+#   - F1-score: 0.80
+#
+# - Weighted avg:
+#   - Precision: 0.94
+#   - Recall: 0.95
+#   - F1-score: 0.94
+
+# ### Final
+# - Optuna KNN Accuracy: 0.9472

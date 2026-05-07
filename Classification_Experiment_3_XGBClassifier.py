@@ -24,8 +24,8 @@ music = pd.read_csv("music_classification.csv", dtype={
 
 print("music_classification.csv -> shape :", music.shape)
 
-music = music.sample(frac=0.2, random_state=42).reset_index(drop=True)
-print("After sampling -> shape :", music.shape)
+# music = music.sample(frac=0.5, random_state=42).reset_index(drop=True)
+# print("After sampling -> shape :", music.shape)
 
 
 train = music[music["year"] < 2021].copy()

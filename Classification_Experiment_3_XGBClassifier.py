@@ -145,3 +145,20 @@ for exp in experiments:
         print(report)
 
 print("\nAll XGBoost experiments completed!")
+
+
+#
+# This experiment used an XGBoost (XGB) classifier to predict whether a song would become a hit (`is_hit`).
+# A time-based train-test split (`year < 2021`) was applied, and target encoding was used for categorical
+#     features such as artist, genre, and region. The encoded features were added to the dataset, original
+#     categorical variables were removed, and all features were standardized before model training.
+#
+# Three XGBoost configurations were evaluated: a baseline model, a model with deeper trees, and a model using
+# a lower learning rate with a larger number of trees. Different values of `max_depth`, `learning_rate`, and
+# `n_estimators` were tested to analyze their effect on model performance.
+#
+# The best results were achieved by the deeper trees configuration with `max_depth = 6` and
+# `n_estimators = 200`, reaching a test accuracy of 0.9629 and a training accuracy of 0.9788.
+# The baseline model achieved a test accuracy of 0.9485, while the low learning rate model reached 0.9566.
+# The results indicate that deeper tree structures improved predictive performance. Overall, the XGBoost
+# classifier produced strong results and outperformed previous configurations.

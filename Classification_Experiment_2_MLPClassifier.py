@@ -128,3 +128,19 @@ for exp in experiments:
 
 print("\nAll experiments completed!")
 
+
+
+# This experiment used a Multi-Layer Perceptron (MLP) classifier to predict whether a song would become
+# a hit (`is_hit`). A time-based train-test split (`year < 2021`) was applied, and 10% of the original
+# dataset was used for training. Target encoding was applied to categorical variables such as artist, genre,
+# and region, and all features were standardized using StandardScaler before model training.
+#
+# Three MLP configurations were tested: a baseline model with one hidden layer `(100)`, a deeper network
+# `(100, 50)`, and a model with Tanh activation. All models used the Adam optimizer and were trained for 50
+# iterations.
+#
+# The best results were achieved by the deeper network model `(100, 50)`, which reached a test accuracy of
+# 0.9567 and a training accuracy of 0.9783. The results indicate strong predictive performance, with only
+#     a small difference between training and test scores, suggesting mild overfitting. Overall, the MLP
+#     classifier performed well and effectively captured complex patterns in the data.
+

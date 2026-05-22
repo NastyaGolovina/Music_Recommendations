@@ -144,3 +144,20 @@ for exp in experiments:
 
 print("\nAll experiments completed!")
 
+
+
+
+# This experiment used a Stacking Regressor model to predict the target variable `log1p(streams)`.
+# The ensemble combined three base models: Linear Regression (LR), Decision Tree Regressor (DT), and
+# Random Forest Regressor (RF). Their predictions were then combined using Linear Regression as the final
+# meta-model. The Decision Tree and Random Forest models were configured with a maximum depth of 10 and a
+# minimum of 50 samples per leaf to reduce overfitting. The Random Forest used 50 trees and bootstrap sampling.
+# A time-based train-test split (`year < 2021`) was applied, and 20% of the data was used as the training sample.
+#
+# The model achieved an R² score of 0.796 and an RMSE of 0.614 on the test set, indicating good predictive
+# performance. During training, the model reached an R² of 0.861 and an RMSE of 0.515. The relatively small
+# difference between training and testing results suggests that the model generalized reasonably well, although
+# there is some indication of mild overfitting. Overall, the stacking approach showed strong performance by
+# combining the strengths of both linear and tree-based models.
+
+

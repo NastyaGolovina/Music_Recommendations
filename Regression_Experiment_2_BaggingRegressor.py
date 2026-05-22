@@ -120,3 +120,33 @@ for exp in experiments:
         print(f"  R2   : {r2:.4f}")
 
 print("\nAll experiments completed!")
+
+
+
+# The experiment evaluated a Bagging Regressor for predicting Spotify track stream counts on a dataset of
+# approximately 26 million records. The target variable was log-transformed using log1p to reduce the
+# impact of extreme outliers. The dataset was sampled down to 20 percent and split temporally, with records
+#     before 2021 used for training and records from 2021 onward used for testing, to reflect a realistic
+#     forecasting scenario.
+#
+# Feature engineering relied on target encoding for three high-cardinality categorical columns: artist, genre,
+# and region. Each was replaced with the mean log-transformed stream count computed on the training set, with
+# unseen categories falling back to the global mean. Temporal features such as day, month, weekday, and quarter,
+# along with rank and artist count, were kept as numeric inputs. StandardScaler was not applied since tree-based
+# models do not require feature scaling.
+#
+# The ensemble consisted of 50 Decision Tree base learners, each trained on a bootstrap sample covering 80 percent
+# of the training data. Individual trees were constrained to a maximum depth of 10 and a minimum of 50 samples
+# per leaf to limit overfitting at the base estimator level. Training ran across 4 parallel jobs and completed
+# in approximately 5.5 minutes.
+#
+# The model achieved a test R2 of 0.796 and a test RMSE of 0.6135 on the log scale. Training R2 was 0.861,
+# giving a gap of roughly 0.065 between train and test performance. This suggests moderate overfitting, likely
+# because the ensemble picks up artist and region specific patterns from the training period that do not fully
+# carry over to post-2021 data. Overall the result is a solid baseline and closely matches the Stacking experiment
+# run under similar constraints, indicating that the shared tree configuration is the main factor limiting
+# performance rather than the choice of ensemble method.
+
+
+
+

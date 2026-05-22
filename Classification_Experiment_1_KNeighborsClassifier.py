@@ -254,3 +254,25 @@ print("\nAll experiments completed!")
 
 # ### Final
 # - Optuna KNN Accuracy: 0.9472
+
+
+
+# This experiment used a K-Nearest Neighbors (KNN) classifier for binary classification to predict whether
+# a song would become a hit (`is_hit`). KNN is a distance-based algorithm that classifies observations according
+# to the labels of the nearest neighboring samples. Since KNN is sensitive to feature scales, all numerical
+# variables were standardized using StandardScaler before training.
+#
+# To improve the quality of the input features, target encoding was applied to categorical variables such as
+# artist, genre, and region. For each category, the average proportion of hit songs was calculated based on
+# the training set and used as a new numerical feature. A time-based split (`year < 2021`) was used to separate
+# training and test data, preserving the chronological order of observations. Additionally, only 5% of the
+# original dataset was used to reduce computational costs.
+#
+# Hyperparameter tuning was performed using Optuna with 5-fold cross-validation. Several values of the
+# `n_neighbors` parameter were tested, and the best configuration selected `n_neighbors = 5`. The model
+# used the Minkowski distance metric with uniform neighbor weighting and the automatic algorithm selection mode.
+#
+# The optimized KNN model achieved an accuracy of 0.9472 on the test set and a cross-validation score of 0.9669.
+# Training accuracy reached 0.9768, indicating strong predictive performance. However, the difference between
+# training and test results may suggest a small degree of overfitting. Overall, the experiment showed that KNN,
+# combined with feature engineering and hyperparameter optimization, produced strong classification results.

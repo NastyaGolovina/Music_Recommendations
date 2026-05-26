@@ -21,14 +21,14 @@ music = pd.read_csv("music_regression.csv", dtype={
 print("music_regression.csv -> shape :", music.shape)
 
 # sample to reduce training time
-music = music.sample(frac=0.2, random_state=42).reset_index(drop=True)
+music = music.sample(frac=0.05, random_state=42).reset_index(drop=True)
 print("After sampling -> shape :", music.shape)
 
 train = music[music["year"] < 2021].copy()
 test  = music[music["year"] >= 2021].copy()
 
-y_train = np.log1p(train["streams"])
-y_test  = np.log1p(test["streams"])
+y_train = np.log1p(train["streams"].values)
+y_test = np.log1p(test["streams"].values)
 
 global_mean = y_train.mean()
 
@@ -84,7 +84,7 @@ for exp in experiments:
             "n_neighbors": exp["n_neighbors"],
             "split":       "time-based year<2021",
             "target":      "log1p(streams)",
-            "sample_frac": 0.2,
+            "sample_frac": 0.05,
         })
         mlflow.log_metric("RMSE", rmse)
         mlflow.log_metric("R2",   r2)

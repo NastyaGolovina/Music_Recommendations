@@ -1,0 +1,4 @@
+run_name,algorithm,leaf_size,metric,metric_params,n_jobs,n_neighbors,p,weights,split,target,sample_frac,training_mean_squared_error,training_mean_absolute_error,training_r2_score,training_root_mean_squared_error,training_score,RMSE,R2
+KNN - k=20,auto,30,minkowski,None,-1,20,2,uniform,time-based year<2021,log1p(streams),0.05,0.11586759984493256,0.24984709918498993,0.9520301222801208,0.34039330170397386,0.9520301222801208,0.589693163918857,0.8158273100852966
+KNN - k=10,auto,30,minkowski,None,-1,10,2,uniform,time-based year<2021,log1p(streams),0.05,0.09781421720981598,0.23048198223114014,0.9595043063163757,0.31275264540818193,0.9595043063163757,0.5974980811962138,0.8109197616577148
+KNN - k=5,auto,30,minkowski,None,-1,5,2,uniform,time-based year<2021,log1p(streams),0.05,0.08298491686582565,0.212990403175354,0.9656437635421753,0.288071027466883,0.9656437635421753,0.605495821439908,0.8058241009712219

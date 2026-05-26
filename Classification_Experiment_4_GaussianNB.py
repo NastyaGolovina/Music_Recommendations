@@ -3,6 +3,7 @@ import numpy as np
 import mlflow.sklearn
 from sklearn.naive_bayes import GaussianNB
 from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 
 music = pd.read_csv("music_classification.csv", dtype={
@@ -79,11 +80,6 @@ for exp in experiments:
         train_acc = accuracy_score(y_train, y_train_pred)
         test_acc  = accuracy_score(y_test,  y_test_pred)
 
-        mlflow.log_param("model",          "GaussianNB")
-        mlflow.log_param("var_smoothing",  exp["var_smoothing"])
-        mlflow.log_param("split",          "time-based year<2021")
-        mlflow.log_metric("train_accuracy", train_acc)
-        mlflow.log_metric("test_accuracy",  test_acc)
         mlflow.log_text(classification_report(y_test, y_test_pred), "classification_report.txt")
 
         print(f"\n{exp['run_name']}")
@@ -93,6 +89,39 @@ for exp in experiments:
         print(confusion_matrix(y_test, y_test_pred))
         print("\nClassification report:")
         print(classification_report(y_test, y_test_pred))
+
+# GridSearchCV — disable autolog so it doesn't hijack the run name
+mlflow.sklearn.autolog(disable=True)
+
+param_grid = {
+    "var_smoothing": [1e-9, 1e-6, 1e-3, 1e-1]
+}
+
+grid = GridSearchCV(
+    GaussianNB(),
+    param_grid,
+    cv=5,
+    scoring="accuracy",
+    n_jobs=-1,
+    verbose=1
+)
+
+grid.fit(X_train_scaled, y_train)
+
+print(f"Best parameters: {grid.best_params_}")
+print(f"Best CV score:   {grid.best_score_:.4f}")
+
+with mlflow.start_run(run_name="GaussianNB - GridSearchCV"):
+    best_model = grid.best_estimator_
+    y_pred = best_model.predict(X_test_scaled)
+    test_acc = accuracy_score(y_test, y_pred)
+
+    mlflow.log_metric("best_cv_score", grid.best_score_)
+    mlflow.log_text(classification_report(y_test, y_pred), "classification_report.txt")
+
+    print(f"\nGridSearchCV Best GaussianNB")
+    print(f"  Test Accuracy : {test_acc:.4f}")
+    print(classification_report(y_test, y_pred))
 
 print("\nAll experiments completed!")
 

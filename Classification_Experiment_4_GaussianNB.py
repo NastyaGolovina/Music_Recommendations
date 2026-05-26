@@ -90,7 +90,7 @@ for exp in experiments:
         print("\nClassification report:")
         print(classification_report(y_test, y_test_pred))
 
-# GridSearchCV — disable autolog so it doesn't hijack the run name
+# GridSearchCV
 mlflow.sklearn.autolog(disable=True)
 
 param_grid = {

@@ -3,6 +3,10 @@ import numpy as np
 import mlflow.sklearn
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.metrics import mean_squared_error, r2_score
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+from sklearn.tree import plot_tree
 
 music = pd.read_csv("music_regression.csv", dtype={
     "rank": "int16",
@@ -90,6 +94,26 @@ for exp in experiments:
         print(f"  R2   : {r2:.4f}")
 
 print("\nAll experiments completed!")
+
+mlflow.sklearn.autolog(disable=True)
+dt_viz = DecisionTreeRegressor(
+    max_depth=5,
+    min_samples_leaf=50,
+    random_state=42)
+dt_viz.fit(X_train, y_train)
+
+fig, ax = plt.subplots(figsize=(40, 10))
+plot_tree(dt_viz, feature_names=X_train.columns.tolist(), filled=True, rounded=True, fontsize=8, ax=ax)
+plt.title("Decision Tree Regressor (max_depth=5)")
+plt.tight_layout()
+plt.savefig("runs/png/DecisionTreeRegressor_tree.png", dpi=150)
+plt.close()
+
+with mlflow.start_run(run_name="DecisionTree - tree visualization"):
+    mlflow.log_artifact("runs/png/DecisionTreeRegressor_tree.png")
+
+print("Tree visualization saved.")
+
 
 # ## Experiment 5 — Decision Tree Regressor
 #

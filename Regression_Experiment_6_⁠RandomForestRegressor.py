@@ -3,6 +3,10 @@ import numpy as np
 import mlflow.sklearn
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error, r2_score
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+from sklearn.tree import plot_tree
 
 music = pd.read_csv("music_regression.csv", dtype={
     "rank": "int16",
@@ -92,6 +96,20 @@ for exp in experiments:
         print(f"  R2   : {r2:.4f}")
 
 print("\nAll experiments completed!")
+
+mlflow.sklearn.autolog(disable=True)
+
+fig, ax = plt.subplots(figsize=(30, 10))
+plot_tree(rf.estimators_[0], feature_names=X_train.columns.tolist(), filled=True, rounded=True, fontsize=8, ax=ax,max_depth=4)
+plt.title("Random Forest — Single Tree Estimator (estimators_[0])")
+plt.tight_layout()
+plt.savefig("runs/png/RandomForestRegressor_tree.png", dpi=150)
+plt.close()
+
+with mlflow.start_run(run_name="RandomForest - tree visualization"):
+    mlflow.log_artifact("runs/png/RandomForestRegressor_tree.png")
+
+print("Random Forest tree visualization saved.")
 
 # ## Experiment 6 — Random Forest Regressor
 #

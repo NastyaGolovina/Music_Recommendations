@@ -34,7 +34,6 @@ y_test  = test["is_hit"]
 global_mean = y_train.mean()
 
 # For each artist, calculate the proportion of their songs that are hits (0.0 to 1.0)
-# Unknown artists in test set receive the global average (fallback)
 artist_mean = train.groupby("artist")["is_hit"].mean()
 train["artist_te"] = train["artist"].map(artist_mean).fillna(global_mean)
 test["artist_te"]  = test["artist"].map(artist_mean).fillna(global_mean)
@@ -87,7 +86,7 @@ grid.fit(X_train_scaled, y_train)
 print(f"\nBest parameters (GridSearchCV): {grid.best_params_}")
 print(f"Best CV score  (GridSearchCV): {grid.best_score_:.4f}")
 
-with mlflow.start_run(run_name="Experiment 1 - GridSearchCV LogisticRegression"):
+with mlflow.start_run(run_name="Experiment - GridSearchCV LogisticRegression"):
     best_model = grid.best_estimator_
     y_pred = best_model.predict(X_test_scaled)
 
@@ -109,6 +108,9 @@ with mlflow.start_run(run_name="Experiment 1 - GridSearchCV LogisticRegression")
 
 print("\nAll experiments completed!")
 
+runs = mlflow.search_runs(experiment_names=["Spotify Streams - Logistic Regression Classifier"])
+runs.to_csv("runs/Spotify_Streams_LogisticRegression_runs.csv", index=False)
+print("CSV saved!")
 
 # ## Experiment 6 — Logistic Regression Classifier
 #

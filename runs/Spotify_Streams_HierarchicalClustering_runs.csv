@@ -1,0 +1,4 @@
+"Start Time","Duration","Run ID","Name","Source Type","Source Name","User","Status","linkage","n_clusters","n_features","n_samples","scaler","silhouette_score"
+"2026-05-30 13:28:52","1.0s","b1d3c18e75ab4a88b69adab9e8913ab0","HierarchicalClustering - k=5 - ward","LOCAL","Clustering_Hierarchical.py","acaro","FINISHED","ward","5","11","3000","StandardScaler","0.12122871394694061"
+"2026-05-30 13:28:50","1.3s","6b7f1a1af90147d6bf35a7dfd8204c1a","HierarchicalClustering - k=3 - ward","LOCAL","Clustering_Hierarchical.py","acaro","FINISHED","ward","3","11","3000","StandardScaler","0.13969328266771217"
+"2026-05-30 13:28:49","1.2s","317e5daa040542dbb6db1e8a1e254c1a","HierarchicalClustering - k=2 - ward","LOCAL","Clustering_Hierarchical.py","acaro","FINISHED","ward","2","11","3000","StandardScaler","0.14948734061473498"

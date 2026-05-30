@@ -4,7 +4,10 @@ import mlflow.sklearn
 from sklearn.naive_bayes import GaussianNB
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import GridSearchCV
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+from sklearn.metrics import (
+    accuracy_score, classification_report, confusion_matrix,
+    f1_score, precision_score, recall_score,
+)
 
 music = pd.read_csv("music_classification.csv", dtype={
     "rank": "int16",
@@ -22,14 +25,19 @@ music = pd.read_csv("music_classification.csv", dtype={
 
 print("music_classification.csv -> shape :", music.shape)
 
-#music = music.sample(frac=0.2, random_state=42).reset_index(drop=True)
-#print("After sampling -> shape :", music.shape)
+music = music.sample(frac=0.1, random_state=42).reset_index(drop=True)
+print("After sampling -> shape :", music.shape)
 
 train = music[music["year"] < 2021].copy()
 test  = music[music["year"] >= 2021].copy()
 
 y_train = train["is_hit"]
 y_test  = test["is_hit"]
+
+print(music["year"].value_counts().sort_index())
+print(f"\nTrain size: {len(train)} | Test size: {len(test)}")
+print(f"Train is_hit rate: {y_train.mean():.4f}")
+print(f"Test  is_hit rate: {y_test.mean():.4f}")
 
 global_mean = y_train.mean()
 
@@ -77,14 +85,25 @@ for exp in experiments:
         y_train_pred = gnb.predict(X_train_scaled)
         y_test_pred  = gnb.predict(X_test_scaled)
 
-        train_acc = accuracy_score(y_train, y_train_pred)
-        test_acc  = accuracy_score(y_test,  y_test_pred)
+        train_acc      = accuracy_score(y_train, y_train_pred)
+        test_acc       = accuracy_score(y_test,  y_test_pred)
+        test_f1        = f1_score(y_test, y_test_pred, zero_division=0)
+        test_precision = precision_score(y_test, y_test_pred, zero_division=0)
+        test_recall    = recall_score(y_test, y_test_pred, zero_division=0)
 
+        mlflow.log_metric("Accuracy",  test_acc)
+        mlflow.log_metric("F1",        test_f1)
+        mlflow.log_metric("Precision", test_precision)
+        mlflow.log_metric("Recall",    test_recall)
+        mlflow.log_metric("train_acc", train_acc)
         mlflow.log_text(classification_report(y_test, y_test_pred), "classification_report.txt")
 
         print(f"\n{exp['run_name']}")
         print(f"  Train Accuracy : {train_acc:.4f}")
         print(f"  Test  Accuracy : {test_acc:.4f}")
+        print(f"  F1             : {test_f1:.4f}")
+        print(f"  Precision      : {test_precision:.4f}")
+        print(f"  Recall         : {test_recall:.4f}")
         print("\nConfusion matrix:")
         print(confusion_matrix(y_test, y_test_pred))
         print("\nClassification report:")
@@ -101,8 +120,8 @@ grid = GridSearchCV(
     GaussianNB(),
     param_grid,
     cv=5,
-    scoring="accuracy",
-    n_jobs=-1,
+    scoring="f1",
+    n_jobs=1,
     verbose=1
 )
 
@@ -113,14 +132,25 @@ print(f"Best CV score:   {grid.best_score_:.4f}")
 
 with mlflow.start_run(run_name="GaussianNB - GridSearchCV"):
     best_model = grid.best_estimator_
-    y_pred = best_model.predict(X_test_scaled)
-    test_acc = accuracy_score(y_test, y_pred)
+    y_pred         = best_model.predict(X_test_scaled)
+    test_acc       = accuracy_score(y_test, y_pred)
+    test_f1        = f1_score(y_test, y_pred, zero_division=0)
+    test_precision = precision_score(y_test, y_pred, zero_division=0)
+    test_recall    = recall_score(y_test, y_pred, zero_division=0)
 
     mlflow.log_metric("best_cv_score", grid.best_score_)
+    mlflow.log_metric("Accuracy",      test_acc)
+    mlflow.log_metric("F1",            test_f1)
+    mlflow.log_metric("Precision",     test_precision)
+    mlflow.log_metric("Recall",        test_recall)
     mlflow.log_text(classification_report(y_test, y_pred), "classification_report.txt")
 
     print(f"\nGridSearchCV Best GaussianNB")
     print(f"  Test Accuracy : {test_acc:.4f}")
+    print(f"  F1            : {test_f1:.4f}")
+    print(f"  Precision     : {test_precision:.4f}")
+    print(f"  Recall        : {test_recall:.4f}")
+    print(f"  Best CV score : {grid.best_score_:.4f}")
     print(classification_report(y_test, y_pred))
 
 print("\nAll experiments completed!")

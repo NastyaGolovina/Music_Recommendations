@@ -4,7 +4,10 @@ import mlflow.sklearn
 from sklearn.ensemble import AdaBoostClassifier
 from sklearn.tree import DecisionTreeClassifier
 #from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+from sklearn.metrics import (
+    accuracy_score, classification_report, confusion_matrix,
+    f1_score, precision_score, recall_score,
+)
 
 music = pd.read_csv("music_classification.csv", dtype={
     "rank": "int16",
@@ -81,14 +84,25 @@ for exp in experiments:
         y_train_pred = ada.predict(X_train)
         y_test_pred  = ada.predict(X_test)
 
-        train_acc = accuracy_score(y_train, y_train_pred)
-        test_acc  = accuracy_score(y_test,  y_test_pred)
+        train_acc      = accuracy_score(y_train, y_train_pred)
+        test_acc       = accuracy_score(y_test,  y_test_pred)
+        test_f1        = f1_score(y_test, y_test_pred, zero_division=0)
+        test_precision = precision_score(y_test, y_test_pred, zero_division=0)
+        test_recall    = recall_score(y_test, y_test_pred, zero_division=0)
 
+        mlflow.log_metric("Accuracy",  test_acc)
+        mlflow.log_metric("F1",        test_f1)
+        mlflow.log_metric("Precision", test_precision)
+        mlflow.log_metric("Recall",    test_recall)
+        mlflow.log_metric("train_acc", train_acc)
         mlflow.log_text(classification_report(y_test, y_test_pred), "classification_report.txt")
 
         print(f"\n{exp['run_name']}")
         print(f"  Train Accuracy : {train_acc:.4f}")
         print(f"  Test  Accuracy : {test_acc:.4f}")
+        print(f"  F1             : {test_f1:.4f}")
+        print(f"  Precision      : {test_precision:.4f}")
+        print(f"  Recall         : {test_recall:.4f}")
         print("\nConfusion matrix:")
         print(confusion_matrix(y_test, y_test_pred))
         print("\nClassification report:")

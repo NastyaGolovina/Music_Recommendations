@@ -93,6 +93,7 @@ with mlflow.start_run(run_name="Experiment 12 - GridSearchCV SVR"):
     rmse = np.sqrt(mean_squared_error(y_test, y_pred))
     r2   = r2_score(y_test, y_pred)
 
+
     mlflow.log_param("model_type",     "SVR")
     mlflow.log_param("split",          "time-based year<2021")
     mlflow.log_param("sample_frac",    0.002)

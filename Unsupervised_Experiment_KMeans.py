@@ -48,9 +48,6 @@ pca = PCA(n_components=11, random_state=42)
 X_pca = pca.fit_transform(X_scaled)
 print(f"X after PCA -> shape : {X_pca.shape}")
 
-# ─────────────────────────────────────────────
-# KMEANS
-# ─────────────────────────────────────────────
 results = []
 for k in [2, 3]:
     kmeans = KMeans(n_clusters=k, random_state=42, n_init=10)
@@ -62,13 +59,10 @@ for k in [2, 3]:
 best = max(results, key=lambda x: x["silhouette"])
 print(f"\nBest k: {best['k']} with Silhouette Score: {best['silhouette']:.4f}")
 
-# ─────────────────────────────────────────────
-# MLFLOW
-# ─────────────────────────────────────────────
 mlflow.set_tracking_uri("sqlite:///mlflow.db")
 mlflow.set_experiment("Spotify Streams - KMeans Clustering")
 
-with mlflow.start_run(run_name="Experiment 1 - KMeans"):
+with mlflow.start_run(run_name="Experiment - KMeans"):
     mlflow.log_param("sample_frac",    0.001)
     mlflow.log_param("pca_components", 11)
     mlflow.log_param("k_values_tried", "2,3")
@@ -78,7 +72,7 @@ with mlflow.start_run(run_name="Experiment 1 - KMeans"):
     for r in results:
         mlflow.log_metric(f"silhouette_k{r['k']}", r["silhouette"])
 
-    print(f"\nExperiment 1 - KMeans Clustering")
+    print(f"\nExperiment - KMeans Clustering")
     for r in results:
         print(f"  k={r['k']} Silhouette: {r['silhouette']:.4f}")
     print(f"  Best k: {best['k']}")
@@ -89,27 +83,19 @@ print("\nAll experiments completed!")
 runs = mlflow.search_runs(experiment_names=["Spotify Streams - KMeans Clustering"])
 runs.to_csv("runs/Spotify_Streams_KMeans_runs.csv", index=False)
 print("CSV saved!")
-# ## Experiment 2 — KMeans Clustering
+
+
+# ## Experiment — KMeans Clustering
 #
-# This experiment applied KMeans clustering to discover natural groupings
-# in the Spotify dataset without using the is_hit label (unsupervised learning).
-# PCA was first applied to reduce 16 features to 11 components (95% variance)
-# to remove noise before clustering. KMeans was tested with k=2 and k=3.
-# The Silhouette Score measures cluster quality (closer to 1.0 = better).
+# This experiment applied KMeans clustering to uncover natural groupings in
+# the Spotify dataset without using the target label (is_hit). The data was
+# first scaled and reduced using PCA (11 components, ~95% variance retained)
+# to improve clustering stability and reduce noise.
 #
-# ### Data Shapes
-# - Original dataset: (26,173,485, 18)
-# - After sampling (0.1%): (26,173, 18)
-# - X original: (26,173, 16)
-# - X after PCA: (26,173, 11)
+# KMeans was evaluated using silhouette score for k=2 and k=3. The best result
+# was obtained with k=2, achieving a silhouette score of 0.1364.
 #
-# ### Results
-# - k=2 Silhouette Score: 0.1364 ← best
-# - k=3 Silhouette Score: 0.1150
-# - Best k: 2
-#
-# The low Silhouette Score (0.1364) indicates that hits and non-hits do not
-# form clearly separated clusters in the feature space. This is expected —
-# stream counts are influenced by many overlapping factors (region, artist,
-# timing) that make clean separation difficult without supervision.
-# k=2 was still the best choice, loosely aligning with the hit/not-hit labels.
+# Although k=2 performed slightly better, the overall silhouette scores were
+# low, indicating weak cluster separation. This suggests that hit songs and
+# non-hit songs do not naturally form distinct groups in feature space, likely
+# due to overlapping influences such as artist popularity, region, and timing.

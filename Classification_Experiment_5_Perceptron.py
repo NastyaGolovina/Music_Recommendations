@@ -3,7 +3,10 @@ import numpy as np
 import mlflow.sklearn
 from sklearn.linear_model import Perceptron
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+from sklearn.metrics import (
+    accuracy_score, classification_report, confusion_matrix,
+    f1_score, precision_score, recall_score,
+)
 
 music = pd.read_csv("music_classification.csv", dtype={
     "rank": "int16",
@@ -81,21 +84,30 @@ for exp in experiments:
         y_train_pred = perc.predict(X_train_scaled)
         y_test_pred  = perc.predict(X_test_scaled)
 
-        train_acc = accuracy_score(y_train, y_train_pred)
-        test_acc  = accuracy_score(y_test,  y_test_pred)
+        train_acc      = accuracy_score(y_train, y_train_pred)
+        test_acc       = accuracy_score(y_test,  y_test_pred)
+        test_f1        = f1_score(y_test, y_test_pred, zero_division=0)
+        test_precision = precision_score(y_test, y_test_pred, zero_division=0)
+        test_recall    = recall_score(y_test, y_test_pred, zero_division=0)
 
         mlflow.log_param("model",       "Perceptron")
         mlflow.log_param("max_iter",    exp["max_iter"])
         mlflow.log_param("eta0",        exp["eta0"])
         mlflow.log_param("split",       "time-based year<2021")
         mlflow.log_param("sample_frac", 0.2)
-        mlflow.log_metric("train_accuracy", train_acc)
-        mlflow.log_metric("test_accuracy",  test_acc)
+        mlflow.log_metric("Accuracy",   test_acc)
+        mlflow.log_metric("F1",         test_f1)
+        mlflow.log_metric("Precision",  test_precision)
+        mlflow.log_metric("Recall",     test_recall)
+        mlflow.log_metric("train_acc",  train_acc)
         mlflow.log_text(classification_report(y_test, y_test_pred), "classification_report.txt")
 
         print(f"\n{exp['run_name']}")
         print(f"  Train Accuracy : {train_acc:.4f}")
         print(f"  Test  Accuracy : {test_acc:.4f}")
+        print(f"  F1             : {test_f1:.4f}")
+        print(f"  Precision      : {test_precision:.4f}")
+        print(f"  Recall         : {test_recall:.4f}")
         print("\nConfusion matrix:")
         print(confusion_matrix(y_test, y_test_pred))
         print("\nClassification report:")

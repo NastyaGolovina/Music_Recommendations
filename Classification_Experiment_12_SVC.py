@@ -112,7 +112,7 @@ runs = mlflow.search_runs(experiment_names=["Spotify Streams - SVC Classifier"])
 runs.to_csv("runs/Spotify_Streams_SVC_runs.csv", index=False)
 print("CSV saved!")
 
-# ## Experiment 12 — SVC Classifier
+# ## Experiment — SVC Classifier
 #
 # This experiment used a Support Vector Classifier (SVC) with an RBF kernel to
 # classify songs as hits or non-hits. The dataset was split using a time-based

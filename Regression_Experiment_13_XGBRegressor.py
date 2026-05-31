@@ -5,6 +5,11 @@ from xgboost import XGBRegressor
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import mean_squared_error, r2_score
 
+import onnxmltools
+from onnxmltools.convert import convert_xgboost
+from onnxmltools.utils import save_model as save_onnx
+from skl2onnx.common.data_types import FloatTensorType
+
 music = pd.read_csv("music_regression.csv", dtype={
     "rank":             "int16",
     "streams":          "float32",
@@ -105,6 +110,18 @@ with mlflow.start_run(run_name="Experiment 13 - GridSearchCV XGBRegressor"):
     print(f"\nExperiment 13 - GridSearchCV XGBRegressor")
     print(f"  RMSE : {rmse:.4f}")
     print(f"  R2   : {r2:.4f}")
+
+    # Reset feature names before converting
+
+    best_model_onnx = best_model
+    best_model_onnx.get_booster().feature_names = [
+        f"f{i}" for i in range(X_train.shape[1])
+    ]
+
+    initial_type = [('float_input', FloatTensorType([None, X_train.shape[1]]))]
+    onnx_model = convert_xgboost(best_model_onnx, initial_types=initial_type)
+    save_onnx(onnx_model, 'xgboost_regressor.onnx')
+    print("ONNX model saved!")
 
 print("\nAll experiments completed!")
 

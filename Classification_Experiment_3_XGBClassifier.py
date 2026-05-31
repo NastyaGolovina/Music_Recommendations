@@ -72,6 +72,7 @@ X_test_scaled  = scaler.transform(X_test).astype("float32")
 mlflow.set_tracking_uri("sqlite:///mlflow.db")
 mlflow.set_experiment("Spotify Streams - XGBClassifier")
 
+
 COMMON = {
     "random_state": 42,
     "eval_metric":  "logloss",
@@ -137,6 +138,7 @@ for exp in experiments:
         report = classification_report(y_test, y_test_pred)
         mlflow.log_text(report, "classification_report.txt")
 
+        mlflow.xgboost.log_model(xgb, name="model")
         print(f"  Train Accuracy : {train_acc:.4f}")
         print(f"  Test  Accuracy : {test_acc:.4f}")
         print("\nConfusion matrix:")

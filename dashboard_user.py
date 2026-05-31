@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 from data_loader import load_data
 import plotly.express as px
 
@@ -399,3 +400,75 @@ def user_dashboard():
                 xaxis_title='Mean Streams'
             )
             st.plotly_chart(fig, use_container_width=True)
+
+    st.divider()
+    st.subheader("🎯 Will This Song Be a Hit?")
+    st.caption("Enter the song details below and find out if it has what it takes to top the charts!")
+
+    with st.form("hit_prediction_form"):
+        genre_options  = sorted([
+            g for g in music["main_genre"].dropna().unique().tolist()
+            if isinstance(g, str) and not g.strip().isdigit()
+        ])
+        region_options = sorted(music[music["region"] != "Global"]["region"].dropna().unique().tolist())
+
+        s1, s2 = st.columns(2)
+        selected_song   = s1.text_input("Song Name", placeholder="e.g. Anti-Hero")
+        selected_artist = s2.text_input("Artist Name", placeholder="e.g. Taylor Swift")
+
+        p1, p2, p3 = st.columns(3)
+        selected_genre  = p1.selectbox("Genre", genre_options, key="pred_genre")
+        selected_region = p2.selectbox("Region", region_options, key="pred_region")
+        selected_date   = p3.date_input("Release Date", value=pd.Timestamp("2020-06-01").date())
+
+        submitted = st.form_submit_button("🎵 Predict", use_container_width=True, type="primary")
+
+    if submitted:
+        dt = pd.Timestamp(selected_date)
+
+        song_label   = f"*{selected_song}*" if selected_song.strip() else "this song"
+        artist_label = f" by **{selected_artist}**" if selected_artist.strip() else ""
+        st.markdown(f"### Prediction for: {song_label}{artist_label}")
+
+        artist_lookup  = selected_artist.strip() if selected_artist.strip() else ""
+        global_hit_rate = 0.1
+        artist_te = music[music["artist"].str.lower() == artist_lookup.lower()]["is_hit"].mean() \
+                    if "is_hit" in music.columns and artist_lookup else global_hit_rate
+        genre_te  = music[music["main_genre"] == selected_genre]["is_hit"].mean() \
+                    if "is_hit" in music.columns else global_hit_rate
+        region_te = music[music["region"] == selected_region]["is_hit"].mean() \
+                    if "is_hit" in music.columns else global_hit_rate
+
+        input_features = np.array([[
+            50,  # rank fixed internally — unknown before release
+            dt.year,
+            dt.month,
+            dt.day,
+            dt.dayofweek,
+            dt.quarter,
+            int(dt.dayofweek >= 5),
+            (dt - pd.Timestamp("2017-01-01")).days,
+            1,
+            float(artist_te)  if not np.isnan(float(artist_te))  else global_hit_rate,
+            float(genre_te)   if not np.isnan(float(genre_te))   else global_hit_rate,
+            float(region_te)  if not np.isnan(float(region_te))  else global_hit_rate,
+        ]], dtype=np.float32)
+
+        # TODO: replace with .onnx model inference when model is ready
+        # import onnxruntime as rt
+        # sess = rt.InferenceSession("model_classification.onnx")
+        # input_name = sess.get_inputs()[0].name
+        # result = sess.run(None, {input_name: input_features})
+        # is_hit_pred = int(result[0][0])
+        # hit_prob    = float(result[1][0][1])  # probability of class 1
+        is_hit_pred = None
+        hit_prob    = None
+
+        if is_hit_pred is None:
+            st.info("🔧 Prediction model not available yet — connect the .onnx file to enable predictions.", icon="ℹ️")
+        elif is_hit_pred == 1:
+            st.success("🎉 This song is predicted to be a HIT!")
+            st.metric("🔥 Hit Probability", f"{hit_prob * 100:.0f}%")
+        else:
+            st.warning("📉 This song is predicted NOT to be a hit.")
+            st.metric("💡 Hit Probability", f"{hit_prob * 100:.0f}%")

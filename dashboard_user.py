@@ -3,6 +3,8 @@ import pandas as pd
 import numpy as np
 from data_loader import load_data
 import plotly.express as px
+import onnxruntime as rt
+from sklearn.preprocessing import StandardScaler
 
 @st.cache_data
 def load_map_data():
@@ -24,6 +26,58 @@ def get_metrics(music):
         "artists": music["artist"].nunique(),
         "regions": music["region"].nunique(),
         "streams": music["streams"].sum()
+    }
+
+
+_DATASET_START = pd.Timestamp("2017-01-01")
+
+
+@st.cache_resource
+def _load_clf_session():
+    return rt.InferenceSession("model_classification.onnx")
+
+
+@st.cache_resource(show_spinner=False)
+def _load_prediction_assets():
+    df = pd.read_csv("music_classification.csv", dtype={
+        "rank":             "int16",
+        "streams":          "float32",
+        "is_hit":           "int8",
+        "year":             "int16",
+        "month":            "int8",
+        "day":              "int8",
+        "weekday":          "int8",
+        "quarter":          "int8",
+        "is_weekend":       "int8",
+        "days_since_start": "int32",
+        "artist_count":     "int32",
+    })
+
+    train = df[df["year"] < 2021].copy()
+
+    global_mean = float(train["is_hit"].mean())
+    artist_mean = train.groupby("artist")["is_hit"].mean()
+    genre_mean  = train.groupby("main_genre")["is_hit"].mean()
+    region_mean = train.groupby("region")["is_hit"].mean()
+
+    train["artist_te"] = train["artist"].map(artist_mean).fillna(global_mean)
+    train["genre_te"]  = train["main_genre"].map(genre_mean).fillna(global_mean)
+    train["region_te"] = train["region"].map(region_mean).fillna(global_mean)
+
+    drop_cols = ["streams", "is_hit", "artist", "main_genre", "region"]
+    X_train   = train.drop(columns=drop_cols)
+
+    scaler = StandardScaler()
+    scaler.fit(X_train)
+
+    return {
+        "global_mean":  global_mean,
+        "artist_te":    artist_mean.to_dict(),
+        "genre_te":     genre_mean.to_dict(),
+        "region_te":    region_mean.to_dict(),
+        "artist_count": df.groupby("artist")["artist_count"].first().to_dict(),
+        "scaler_mean":  scaler.mean_.tolist(),
+        "scaler_scale": scaler.scale_.tolist(),
     }
 
 
@@ -403,72 +457,60 @@ def user_dashboard():
 
     st.divider()
     st.subheader("🎯 Will This Song Be a Hit?")
-    st.caption("Enter the song details below and find out if it has what it takes to top the charts!")
+    st.caption("Enter song details to predict whether it will become a hit.")
 
-    with st.form("hit_prediction_form"):
-        genre_options  = sorted([
-            g for g in music["main_genre"].dropna().unique().tolist()
-            if isinstance(g, str) and not g.strip().isdigit()
-        ])
-        region_options = sorted(music[music["region"] != "Global"]["region"].dropna().unique().tolist())
+    _genre_opts  = sorted([g for g in music["main_genre"].dropna().unique()
+                           if isinstance(g, str) and not g.strip().isdigit()])
+    _region_opts = sorted(music[music["region"] != "Global"]["region"].dropna().unique())
 
-        s1, s2 = st.columns(2)
-        selected_song   = s1.text_input("Song Name", placeholder="e.g. Anti-Hero")
-        selected_artist = s2.text_input("Artist Name", placeholder="e.g. Taylor Swift")
+    with st.form("user_hit_form"):
+        _c1, _c2 = st.columns(2)
+        _song   = _c1.text_input("Song Name",   placeholder="e.g. Anti-Hero")
+        _artist = _c2.text_input("Artist Name", placeholder="e.g. Taylor Swift")
 
-        p1, p2, p3 = st.columns(3)
-        selected_genre  = p1.selectbox("Genre", genre_options, key="pred_genre")
-        selected_region = p2.selectbox("Region", region_options, key="pred_region")
-        selected_date   = p3.date_input("Release Date", value=pd.Timestamp("2020-06-01").date())
+        _p1, _p2, _p3 = st.columns(3)
+        _genre  = _p1.selectbox("Genre",        _genre_opts,  key="u_pred_genre")
+        _region = _p2.selectbox("Region",       _region_opts, key="u_pred_region")
+        _date   = _p3.date_input("Release Date", value=pd.Timestamp("today").date(), key="u_pred_date")
 
-        submitted = st.form_submit_button("🎵 Predict", use_container_width=True, type="primary")
+        _submitted = st.form_submit_button("🎵 Predict", use_container_width=True, type="primary")
 
-    if submitted:
-        dt = pd.Timestamp(selected_date)
+    if _submitted:
+        with st.spinner("Predicting..."):
+            _assets = _load_prediction_assets()
+            _dt     = pd.Timestamp(_date)
+            _key    = _artist.strip() or "unknown"
+            _gm     = _assets["global_mean"]
 
-        song_label   = f"*{selected_song}*" if selected_song.strip() else "this song"
-        artist_label = f" by **{selected_artist}**" if selected_artist.strip() else ""
-        st.markdown(f"### Prediction for: {song_label}{artist_label}")
+            _feat = np.array([[
+                50,
+                _dt.year, _dt.month, _dt.day, _dt.dayofweek, _dt.quarter,
+                int(_dt.dayofweek >= 5),
+                max(0, (_dt - _DATASET_START).days),
+                0, 0, 1, 0,
+                int(_assets["artist_count"].get(_key, 1)),
+                float(_assets["artist_te"].get(_key,    _gm)),
+                float(_assets["genre_te"].get(_genre,   _gm)),
+                float(_assets["region_te"].get(_region, _gm)),
+            ]], dtype=np.float32)
 
-        artist_lookup  = selected_artist.strip() if selected_artist.strip() else ""
-        global_hit_rate = 0.1
-        artist_te = music[music["artist"].str.lower() == artist_lookup.lower()]["is_hit"].mean() \
-                    if "is_hit" in music.columns and artist_lookup else global_hit_rate
-        genre_te  = music[music["main_genre"] == selected_genre]["is_hit"].mean() \
-                    if "is_hit" in music.columns else global_hit_rate
-        region_te = music[music["region"] == selected_region]["is_hit"].mean() \
-                    if "is_hit" in music.columns else global_hit_rate
+            _mean   = np.array(_assets["scaler_mean"],  dtype=np.float32)
+            _scale  = np.array(_assets["scaler_scale"], dtype=np.float32)
+            _feat_s = ((_feat - _mean) / _scale).astype(np.float32)
 
-        input_features = np.array([[
-            50,  # rank fixed internally — unknown before release
-            dt.year,
-            dt.month,
-            dt.day,
-            dt.dayofweek,
-            dt.quarter,
-            int(dt.dayofweek >= 5),
-            (dt - pd.Timestamp("2017-01-01")).days,
-            1,
-            float(artist_te)  if not np.isnan(float(artist_te))  else global_hit_rate,
-            float(genre_te)   if not np.isnan(float(genre_te))   else global_hit_rate,
-            float(region_te)  if not np.isnan(float(region_te))  else global_hit_rate,
-        ]], dtype=np.float32)
+            _lbl, _probs = _load_clf_session().run(None, {"input": _feat_s})
+            _is_hit      = int(_lbl[0])
+            _hit_prob    = float(_probs[0][1])
 
-        # TODO: replace with .onnx model inference when model is ready
-        # import onnxruntime as rt
-        # sess = rt.InferenceSession("model_classification.onnx")
-        # input_name = sess.get_inputs()[0].name
-        # result = sess.run(None, {input_name: input_features})
-        # is_hit_pred = int(result[0][0])
-        # hit_prob    = float(result[1][0][1])  # probability of class 1
-        is_hit_pred = None
-        hit_prob    = None
+        _song_lbl   = f"*{_song}*"        if _song.strip()   else "this song"
+        _artist_lbl = f" by **{_artist}**" if _artist.strip() else ""
+        st.markdown(f"### Result for: {_song_lbl}{_artist_lbl}")
 
-        if is_hit_pred is None:
-            st.info("🔧 Prediction model not available yet — connect the .onnx file to enable predictions.", icon="ℹ️")
-        elif is_hit_pred == 1:
-            st.success("🎉 This song is predicted to be a HIT!")
-            st.metric("🔥 Hit Probability", f"{hit_prob * 100:.0f}%")
+        if _is_hit == 1:
+            st.success("🎉 This song is predicted to be a **HIT**!")
         else:
-            st.warning("📉 This song is predicted NOT to be a hit.")
-            st.metric("💡 Hit Probability", f"{hit_prob * 100:.0f}%")
+            st.warning("📉 This song is predicted **not** to be a hit.")
+
+        _m1, _m2 = st.columns(2)
+        _m1.metric("Hit Probability", f"{_hit_prob * 100:.1f}%")
+        _m2.metric("Prediction", "HIT ✅" if _is_hit else "Not a Hit ❌")

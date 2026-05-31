@@ -4,6 +4,8 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import altair as alt
+import onnxruntime as rt
+from sklearn.preprocessing import StandardScaler
 
 @st.cache_data
 def load_map_data():
@@ -27,6 +29,70 @@ def get_metrics(music):
         "streams": music["streams"].sum()
     }
 
+
+
+_DATASET_START = pd.Timestamp("2017-01-01")
+
+
+@st.cache_resource
+def _load_clf_session():
+    return rt.InferenceSession("model_classification.onnx")
+
+
+@st.cache_resource
+def _load_reg_session():
+    return rt.InferenceSession("model_regression.onnx")
+
+
+@st.cache_resource(show_spinner=False)
+def _load_prediction_assets():
+    # --- Classification assets (exact same encoding as Classification_Experiment_3_XGBClassifier.py) ---
+    clf_df = pd.read_csv("music_classification.csv", dtype={
+        "rank": "int16", "streams": "float32", "is_hit": "int8",
+        "year": "int16", "month": "int8", "day": "int8", "weekday": "int8",
+        "quarter": "int8", "is_weekend": "int8", "days_since_start": "int32",
+        "artist_count": "int32",
+    })
+    clf_train  = clf_df[clf_df["year"] < 2021].copy()
+    clf_global = float(clf_train["is_hit"].mean())
+    clf_artist = clf_train.groupby("artist")["is_hit"].mean()
+    clf_genre  = clf_train.groupby("main_genre")["is_hit"].mean()
+    clf_region = clf_train.groupby("region")["is_hit"].mean()
+
+    clf_train["artist_te"] = clf_train["artist"].map(clf_artist).fillna(clf_global)
+    clf_train["genre_te"]  = clf_train["main_genre"].map(clf_genre).fillna(clf_global)
+    clf_train["region_te"] = clf_train["region"].map(clf_region).fillna(clf_global)
+
+    X_clf  = clf_train.drop(columns=["streams", "is_hit", "artist", "main_genre", "region"])
+    scaler = StandardScaler()
+    scaler.fit(X_clf)
+
+    # --- Regression assets (exact same encoding as Regression_Experiment_13_XGBRegressor.py) ---
+    reg_df = pd.read_csv("music_regression.csv", dtype={
+        "rank": "int16", "streams": "float32",
+        "year": "int16", "month": "int8", "day": "int8", "weekday": "int8",
+        "quarter": "int8", "is_weekend": "int8", "days_since_start": "int32",
+        "artist_count": "int32",
+    })
+    reg_train  = reg_df[reg_df["year"] < 2021].copy()
+    reg_global = float(np.log1p(reg_train["streams"]).mean())
+    reg_artist = reg_train.groupby("artist")["streams"].apply(lambda x: np.log1p(x).mean())
+    reg_genre  = reg_train.groupby("main_genre")["streams"].apply(lambda x: np.log1p(x).mean())
+    reg_region = reg_train.groupby("region")["streams"].apply(lambda x: np.log1p(x).mean())
+
+    return {
+        "clf_global":   clf_global,
+        "clf_artist":   clf_artist.to_dict(),
+        "clf_genre":    clf_genre.to_dict(),
+        "clf_region":   clf_region.to_dict(),
+        "artist_count": clf_df.groupby("artist")["artist_count"].first().to_dict(),
+        "scaler_mean":  scaler.mean_.tolist(),
+        "scaler_scale": scaler.scale_.tolist(),
+        "reg_global":   reg_global,
+        "reg_artist":   reg_artist.to_dict(),
+        "reg_genre":    reg_genre.to_dict(),
+        "reg_region":   reg_region.to_dict(),
+    }
 
 
 def pro_dashboard():
@@ -398,129 +464,81 @@ def pro_dashboard():
 
     st.divider()
     st.subheader("🔬 Predictive Analysis")
-    st.caption("Enter song parameters to generate classification and regression predictions.")
+    st.caption("Enter song parameters to generate hit prediction and stream forecast.")
 
-    with st.form("pro_prediction_form"):
-        genre_options  = sorted([
-            g for g in music["main_genre"].dropna().unique().tolist()
-            if isinstance(g, str) and not g.strip().isdigit()
-        ])
-        region_options = sorted(music[music["region"] != "Global"]["region"].dropna().unique().tolist())
+    _g_opts = sorted([g for g in music["main_genre"].dropna().unique()
+                      if isinstance(g, str) and not g.strip().isdigit()])
+    _r_opts = sorted(music[music["region"] != "Global"]["region"].dropna().unique())
 
-        s1, s2 = st.columns(2)
-        selected_song   = s1.text_input("Song Name", placeholder="e.g. God's Plan")
-        selected_artist = s2.text_input("Artist Name", placeholder="e.g. Drake")
+    with st.form("pro_pred_form"):
+        _c1, _c2 = st.columns(2)
+        _song   = _c1.text_input("Song Name",   placeholder="e.g. God's Plan")
+        _artist = _c2.text_input("Artist Name", placeholder="e.g. Drake")
 
-        p1, p2, p3 = st.columns(3)
-        selected_genre  = p1.selectbox("Genre", genre_options, key="pro_pred_genre")
-        selected_region = p2.selectbox("Region", region_options, key="pro_pred_region")
-        selected_date   = p3.date_input("Release Date", value=pd.Timestamp("2020-06-01").date(),
-                                        key="pro_pred_date")
+        _p1, _p2, _p3 = st.columns(3)
+        _genre  = _p1.selectbox("Genre",        _g_opts, key="pp_genre")
+        _region = _p2.selectbox("Region",       _r_opts, key="pp_region")
+        _date   = _p3.date_input("Release Date", value=pd.Timestamp("today").date(), key="pp_date")
 
-        q1, q2 = st.columns(2)
-        selected_quarter = q1.selectbox(
-            "Release Quarter",
-            ["Q1 — Jan to Mar", "Q2 — Apr to Jun", "Q3 — Jul to Sep", "Q4 — Oct to Dec"],
-            index=1,
-            help="Q4 (holiday season) and Q3 (summer) tend to produce more hits. Q1 is historically the hardest quarter."
-        )
-        selected_is_weekend = q2.selectbox(
-            "Release Day Type",
-            ["Friday / Weekend", "Weekday"],
-            help="Most major Spotify releases happen on Fridays. Weekend releases consistently outperform weekday releases."
-        )
+        _submitted = st.form_submit_button("🔍 Run Prediction", use_container_width=True, type="primary")
 
-        submitted = st.form_submit_button("🔍 Run Prediction", use_container_width=True, type="primary")
+    if _submitted:
+        with st.spinner("Running predictions..."):
+            _assets = _load_prediction_assets()
+            _dt     = pd.Timestamp(_date)
+            _key    = _artist.strip() or "unknown"
+            _iw     = int(_dt.dayofweek >= 5)
+            _dss    = max(0, (_dt - _DATASET_START).days)
+            _td, _tu, _tn, _ts = 0, 0, 1, 0
+            _ac     = int(_assets["artist_count"].get(_key, 1))
 
-    if submitted:
-        dt = pd.Timestamp(selected_date)
+            # --- Classification ---
+            _gm   = _assets["clf_global"]
+            _feat_clf = np.array([[
+                50, _dt.year, _dt.month, _dt.day, _dt.dayofweek, _dt.quarter,
+                _iw, _dss, _td, _tu, _tn, _ts, _ac,
+                float(_assets["clf_artist"].get(_key,    _gm)),
+                float(_assets["clf_genre"].get(_genre,   _gm)),
+                float(_assets["clf_region"].get(_region, _gm)),
+            ]], dtype=np.float32)
 
-        song_label   = f"*{selected_song}*" if selected_song.strip() else "this song"
-        artist_label = f" by **{selected_artist}**" if selected_artist.strip() else ""
-        st.markdown(f"### Prediction for: {song_label}{artist_label}")
+            _mean   = np.array(_assets["scaler_mean"],  dtype=np.float32)
+            _scale  = np.array(_assets["scaler_scale"], dtype=np.float32)
+            _feat_clf_s = ((_feat_clf - _mean) / _scale).astype(np.float32)
 
-        quarter_map    = {"Q1 — Jan to Mar": 1, "Q2 — Apr to Jun": 2, "Q3 — Jul to Sep": 3, "Q4 — Oct to Dec": 4}
-        is_weekend_val = 1 if selected_is_weekend == "Friday / Weekend" else 0
-        quarter_val    = quarter_map[selected_quarter]
+            _lbl, _probs = _load_clf_session().run(None, {"input": _feat_clf_s})
+            _is_hit   = int(_lbl[0])
+            _hit_prob = float(_probs[0][1])
 
-        artist_lookup  = selected_artist.strip() if selected_artist.strip() else ""
-        artist_counts  = music["artist"].value_counts()
-        if artist_lookup and music["artist"].str.lower().eq(artist_lookup.lower()).any():
-            matched_name     = music["artist"][music["artist"].str.lower() == artist_lookup.lower()].iloc[0]
-            artist_count_val = int(artist_counts[matched_name])
-        else:
-            artist_count_val = 1
+            # --- Regression (no scaler) ---
+            _gm_r = _assets["reg_global"]
+            _feat_reg = np.array([[
+                50, _dt.year, _dt.month, _dt.day, _dt.dayofweek, _dt.quarter,
+                _iw, _dss, _td, _tu, _tn, _ts, _ac,
+                float(_assets["reg_artist"].get(_key,    _gm_r)),
+                float(_assets["reg_genre"].get(_genre,   _gm_r)),
+                float(_assets["reg_region"].get(_region, _gm_r)),
+            ]], dtype=np.float32)
 
-        global_hit_rate = 0.1
-        artist_te = music[music["artist"].str.lower() == artist_lookup.lower()]["is_hit"].mean() \
-                    if "is_hit" in music.columns and artist_lookup else global_hit_rate
-        genre_te  = music[music["main_genre"] == selected_genre]["is_hit"].mean() \
-                    if "is_hit" in music.columns else global_hit_rate
-        region_te = music[music["region"] == selected_region]["is_hit"].mean() \
-                    if "is_hit" in music.columns else global_hit_rate
+            _res          = _load_reg_session().run(None, {"float_input": _feat_reg})
+            _pred_streams = max(0, int(np.expm1(float(_res[0][0][0]))))
 
-        input_features = np.array([[
-            50,  # rank fixed internally — unknown before release
-            dt.year,
-            dt.month,
-            dt.day,
-            dt.dayofweek,
-            quarter_val,
-            is_weekend_val,
-            (dt - pd.Timestamp("2017-01-01")).days,
-            artist_count_val,
-            float(artist_te)  if not np.isnan(float(artist_te))  else global_hit_rate,
-            float(genre_te)   if not np.isnan(float(genre_te))   else global_hit_rate,
-            float(region_te)  if not np.isnan(float(region_te))  else global_hit_rate,
-        ]], dtype=np.float32)
+        _song_lbl   = f"*{_song}*"        if _song.strip()   else "this song"
+        _artist_lbl = f" by **{_artist}**" if _artist.strip() else ""
+        st.markdown(f"### Prediction for: {_song_lbl}{_artist_lbl}")
 
-        # TODO: connect classification .onnx when ready
-        # import onnxruntime as rt
-        # sess_clf = rt.InferenceSession("model_classification.onnx")
-        # input_name = sess_clf.get_inputs()[0].name
-        # result_clf  = sess_clf.run(None, {input_name: input_features})
-        # is_hit_pred = int(result_clf[0][0])
-        # hit_prob    = float(result_clf[1][0][1])
+        _col_a, _col_b = st.columns(2)
 
-        # TODO: connect regression .onnx when ready
-        # sess_reg = rt.InferenceSession("model_regression.onnx")
-        # result_reg      = sess_reg.run(None, {input_name: input_features})
-        # predicted_streams = int(np.expm1(float(result_reg[0][0])))
-
-        is_hit_pred       = None
-        hit_prob          = None
-        predicted_streams = None
-
-        col_a, col_b = st.columns(2)
-
-        with col_a:
-            st.markdown("##### Classification — Hit Prediction")
-            if is_hit_pred is None:
-                st.info("🔧 Classification model not connected yet.", icon="ℹ️")
-            elif is_hit_pred == 1:
+        with _col_a:
+            st.markdown("##### 🎯 Hit Prediction")
+            if _is_hit == 1:
                 st.success("✅ Predicted: **HIT**")
-                st.metric("Hit Probability", f"{hit_prob * 100:.1f}%")
             else:
                 st.warning("❌ Predicted: **Not a Hit**")
-                st.metric("Hit Probability", f"{hit_prob * 100:.1f}%")
+            st.metric("Hit Probability", f"{_hit_prob * 100:.1f}%")
 
-        with col_b:
-            st.markdown("##### Regression — Stream Forecast")
-            if predicted_streams is None:
-                st.info("🔧 Regression model not connected yet.", icon="ℹ️")
-            else:
-                if predicted_streams >= 1_000_000:
-                    streams_display = f"{predicted_streams / 1_000_000:.2f}M"
-                else:
-                    streams_display = f"{predicted_streams / 1_000:.0f}K"
-                st.metric("Predicted Streams", streams_display)
+        with _col_b:
+            st.markdown("##### 📈 Stream Forecast")
+            _disp = f"{_pred_streams / 1_000_000:.2f}M" if _pred_streams >= 1_000_000 else f"{_pred_streams / 1_000:.0f}K"
+            st.metric("Predicted Streams", _disp)
 
-        with st.expander("📋 Input features sent to models"):
-            feature_names = ["rank", "year", "month", "day", "weekday", "quarter",
-                             "is_weekend", "days_since_start", "artist_count",
-                             "artist_te", "genre_te", "region_te"]
-            st.dataframe(
-                pd.DataFrame(input_features, columns=feature_names),
-                use_container_width=True,
-                hide_index=True
-            )

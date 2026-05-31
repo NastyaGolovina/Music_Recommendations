@@ -79,38 +79,7 @@ experiments = [
         "final_estimator_name": "LinearRegression",
     },
 ]
-# experiments = [
-#     {
-#         "run_name": "Stacking - LR + KNN + RF -> LR",
-#         "estimators": [
-#             ("lr",  LinearRegression()),
-#             ("knn", KNeighborsRegressor(n_neighbors=5)),
-#             ("rf",  RandomForestRegressor(n_estimators=100, random_state=42)),
-#         ],
-#         "final_estimator": LinearRegression(),
-#         "final_estimator_name": "LinearRegression",
-#     },
-#     {
-#         "run_name": "Stacking - DT + KNN + GB -> LR",
-#         "estimators": [
-#             ("dt",  DecisionTreeRegressor(random_state=42)),
-#             ("knn", KNeighborsRegressor(n_neighbors=5)),
-#             ("rf",  RandomForestRegressor(n_estimators=100, random_state=42)),
-#         ],
-#         "final_estimator": LinearRegression(),
-#         "final_estimator_name": "LinearRegression",
-#     },
-#     {
-#         "run_name": "Stacking - LR + DT + RF -> RF",
-#         "estimators": [
-#             ("lr", LinearRegression()),
-#             ("dt", DecisionTreeRegressor(random_state=42)),
-#             ("rf", RandomForestRegressor(n_estimators=100, random_state=42)),
-#         ],
-#         "final_estimator": RandomForestRegressor(n_estimators=100, random_state=42),
-#         "final_estimator_name": "RandomForestRegressor",
-#     },
-# ]
+
 
 for exp in experiments:
     with mlflow.start_run(run_name=exp["run_name"]):

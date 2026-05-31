@@ -77,92 +77,18 @@ print(" X_train_scaled -> shape :", X_train_scaled.shape)
 print("X_test_scaled -> shape :", X_test_scaled.shape)
 
 
-# X_train_scaled = pd.DataFrame(X_train_scaled, columns=X_train.columns)
-# X_test_scaled  = pd.DataFrame(X_test_scaled, columns=X_test.columns)
-#
 
 mlflow.set_tracking_uri("sqlite:///mlflow.db")
 mlflow.set_experiment("Spotify Streams - KNN Classifier")
 mlflow.sklearn.autolog(log_models=False)
 
-#
-# with mlflow.start_run(run_name="Experiment 1 - Baseline KNN"):
-#     pipeline = Pipeline([
-#         ("scaler", StandardScaler()),
-#         ("knn", KNeighborsClassifier(n_neighbors=5))
-#     ])
-#     pipeline.fit(X_train, y_train)
-#     y_pred = pipeline.predict(X_test)
-#
-#     acc = accuracy_score(y_test, y_pred)
-#
-#     mlflow.log_param("model_type", "KNeighborsClassifier")
-#     mlflow.log_param("n_neighbors", 5)
-#     mlflow.log_param("split", "time-based year<2021")
-#     mlflow.log_param("sample_frac", 0.05)
-#     mlflow.log_metric("Accuracy", acc)
-#     mlflow.log_text(classification_report(y_test, y_pred), "classification_report.txt")
-#
-#     print(f"\nExperiment 1 - Baseline KNN")
-#     print(f"  Accuracy : {acc:.4f}")
-#     print(classification_report(y_test, y_pred))
-#
-#
-# grid_pipeline = Pipeline([
-#     ("scaler", StandardScaler()),
-#     ("knn", KNeighborsClassifier())
-# ])
-#
-# param_grid = [{
-#     "knn__n_neighbors": [5, 10, 22, 50],
-#     "knn__weights":     ["uniform"],
-#     "knn__algorithm":   ["auto"]
-# }]
-#
-# grid = GridSearchCV(
-#     estimator=grid_pipeline,
-#     param_grid=param_grid,
-#     cv=5,
-#     scoring="accuracy",
-#     n_jobs=-1,
-#     verbose=1
-# )
-#
-# grid.fit(X_train, y_train)
-#
-# print(f"\nBest parameters (GridSearchCV): {grid.best_params_}")
-# print(f"Best CV score  (GridSearchCV): {grid.best_score_:.4f}")
-#
-# with mlflow.start_run(run_name="Experiment 2 - GridSearchCV KNN"):
-#     best_grid_model = grid.best_estimator_
-#     y_pred_grid = best_grid_model.predict(X_test)
-#
-#     acc_grid = accuracy_score(y_test, y_pred_grid)
-#
-#     mlflow.log_param("model_type",  "KNeighborsClassifier")
-#     mlflow.log_param("split",       "time-based year<2021")
-#     mlflow.log_param("sample_frac", 0.05)
-#     mlflow.log_param("n_neighbors", grid.best_params_["knn__n_neighbors"])
-#     mlflow.log_param("weights",     grid.best_params_["knn__weights"])
-#     mlflow.log_param("algorithm",   grid.best_params_["knn__algorithm"])
-#     mlflow.log_metric("Accuracy",   acc_grid)
-#     mlflow.log_metric("Best_CV_score", grid.best_score_)
-#     mlflow.log_text(classification_report(y_test, y_pred_grid), "classification_report.txt")
-#
-#     print(f"\nExperiment 2 - GridSearchCV KNN")
-#     print(f"  Accuracy : {acc_grid:.4f}")
-#     print(classification_report(y_test, y_pred_grid))
-
 
 def objective(trial):
     n_neighbors = trial.suggest_categorical("n_neighbors", [3, 5, 10, 20, 30, 50])
-    # weights     = trial.suggest_categorical("weights",     ["uniform", "distance"])
-    # algorithm   = trial.suggest_categorical("algorithm",   ["auto", "ball_tree", "kd_tree", "brute"])
 
     model = KNeighborsClassifier(
         n_neighbors=n_neighbors,
-        # weights=weights,
-        # algorithm=algorithm
+
     )
     score = cross_val_score(
         model, X_train_scaled, y_train,
@@ -188,8 +114,7 @@ with mlflow.start_run(run_name="Experiment 1 - Optuna KNN"):
     mlflow.log_param("split",       "time-based year<2021")
     mlflow.log_param("sample_frac", 0.05)
     mlflow.log_param("n_neighbors", best_params["n_neighbors"])
-    # mlflow.log_param("weights",     best_params["weights"])
-    # mlflow.log_param("algorithm",   best_params["algorithm"])
+
     mlflow.log_metric("Accuracy",      acc_optuna)
     mlflow.log_metric("Best_CV_score", study.best_value)
     mlflow.log_text(classification_report(y_test, y_pred_optuna), "classification_report.txt")
@@ -199,8 +124,7 @@ with mlflow.start_run(run_name="Experiment 1 - Optuna KNN"):
     print(classification_report(y_test, y_pred_optuna))
 
 
-# print(f"  Baseline    Accuracy : {acc:.4f}")
-# print(f"  GridSearchCV Accuracy: {acc_grid:.4f}")
+
 print(f"  Optuna      Accuracy : {acc_optuna:.4f}")
 print("\nAll experiments completed!")
 

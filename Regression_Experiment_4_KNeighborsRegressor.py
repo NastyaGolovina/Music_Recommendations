@@ -1,6 +1,9 @@
 import pandas as pd
 import numpy as np
 import mlflow.sklearn
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import mean_squared_error, r2_score
@@ -63,10 +66,15 @@ mlflow.set_experiment("Spotify Streams - KNeighborsRegressor")
 mlflow.sklearn.autolog(log_models=False)
 
 experiments = [
+    {"run_name": "KNN - k=1",  "n_neighbors": 1},
+    {"run_name": "KNN - k=3",  "n_neighbors": 3},
     {"run_name": "KNN - k=5",  "n_neighbors": 5},
     {"run_name": "KNN - k=10", "n_neighbors": 10},
+    {"run_name": "KNN - k=15", "n_neighbors": 15},
     {"run_name": "KNN - k=20", "n_neighbors": 20},
 ]
+
+k_values, rmse_values = [], []
 
 for exp in experiments:
     with mlflow.start_run(run_name=exp["run_name"]):
@@ -89,18 +97,66 @@ for exp in experiments:
         mlflow.log_metric("RMSE", rmse)
         mlflow.log_metric("R2",   r2)
 
+        k_values.append(exp["n_neighbors"])
+        rmse_values.append(rmse)
+
         print(f"\n{exp['run_name']}")
         print(f"  RMSE : {rmse:.4f}")
         print(f"  R2   : {r2:.4f}")
 
 print("\nAll experiments completed!")
 
-# ## Experiment 4 — KNeighbors Regressor
+# Elbow curve — RMSE vs k
+best_k = k_values[int(np.argmin(rmse_values))]
+fig, ax = plt.subplots(figsize=(8, 5))
+ax.plot(k_values, rmse_values, marker="o", color="steelblue", linewidth=2)
+ax.axvline(x=best_k, color="red", linestyle="--", label=f"Optimal k={best_k}")
+ax.set_title("KNN Regressor — RMSE vs Number of Neighbours")
+ax.set_xlabel("k (n_neighbors)")
+ax.set_ylabel("RMSE")
+ax.legend()
+plt.tight_layout()
+plot_path = "runs/png/KNeighborsRegressor_elbow.png"
+plt.savefig(plot_path, dpi=150)
+plt.close()
+
+with mlflow.start_run(run_name="KNN - elbow curve"):
+    mlflow.log_artifact(plot_path)
+
+print(f"Elbow curve saved → {plot_path} | Optimal k={best_k}")
+
+# =============================================================================
+# Experiment 4 — KNeighbors Regressor
+# =============================================================================
 #
-# This experiment applied K-Nearest Neighbors regression to predict log1p(streams).
-# KNN is a non-parametric model that predicts based on the average of the k closest
-# training samples in feature space. Since KNN is sensitive to feature scale,
-# StandardScaler was applied before training. Three values of k were tested (5, 10, 20)
-# to find the optimal number of neighbours. KNN is expected to capture local patterns
-# in the data but may struggle with the large dataset size due to its high computational
-# cost at prediction time.
+# Goal:
+#   Predict log1p(streams) using K-Nearest Neighbors Regression. KNN predicts
+#   by averaging the target values of the k closest training samples in feature
+#   space. Since KNN is sensitive to feature scale, StandardScaler was applied
+#   before training. Six values of k were tested to identify the optimal number
+#   of neighbours using an elbow curve of RMSE vs k.
+#
+# Setup:
+#   - 5% sample of music_regression.csv (time-based split: train < 2021, test >= 2021)
+#   - Target encoding applied to artist, genre, region
+#   - StandardScaler applied before training
+#
+# Results:
+#   k    RMSE      R²      Train R²   Duration
+#   1    0.9031    0.5589  0.9998     15.0min
+#   3    0.7756    0.6747  0.8888     15.8min
+#   5    0.7477    0.6976  0.8645     16.1min
+#   10   0.7274    0.7139  0.8425     16.0min
+#   15   0.7233    0.7170  0.8326     16.3min
+#   20   0.7221    0.7180  0.8263     17.5min
+#
+# Analysis:
+#   k=1 severely overfits — training R²=0.9998 means the model memorises the
+#   training data exactly, but generalises poorly (test R²=0.5589, RMSE=0.9031).
+#   As k increases, overfitting reduces and test performance improves steadily.
+#   The gains plateau between k=15 and k=20 (RMSE 0.7233 vs 0.7221), making
+#   k=20 the optimal choice with the best test RMSE (0.7221) and R² (0.7180).
+#   All runs took roughly the same time (~15-17min) regardless of k, confirming
+#   that KNN's cost is dominated by prediction (computing distances to all
+#   training points) rather than the choice of k itself.
+# =============================================================================

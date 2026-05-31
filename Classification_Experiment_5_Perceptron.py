@@ -115,12 +115,35 @@ for exp in experiments:
 
 print("\nAll experiments completed!")
 
-# ## Experiment 5 — Perceptron Classifier
+# =============================================================================
+# Experiment 5 — Perceptron Classifier
+# =============================================================================
 #
-# This experiment applied a Perceptron classifier to predict hit songs.
-# The Perceptron is the simplest form of a neural network — a single layer
-# that learns a linear decision boundary by updating weights based on misclassified samples.
-# It requires feature scaling and works well when classes are linearly separable.
-# Three configurations were tested varying max_iter and learning rate (eta0).
-# The Perceptron is fast to train but limited to linear decision boundaries,
-# so it may underperform compared to tree-based or ensemble models on this dataset.
+# Goal:
+#   Classify songs as hits (is_hit=1) or not (is_hit=0) using a Perceptron.
+#   The Perceptron is the simplest form of a neural network — a single layer
+#   that learns a linear decision boundary by updating weights based on
+#   misclassified samples. It requires feature scaling and works best when
+#   classes are linearly separable.
+#
+# Setup:
+#   - 20% sample of music_classification.csv (time-based split: train < 2021, test >= 2021)
+#   - Target encoding applied to artist, genre, region
+#   - StandardScaler applied (Perceptron is sensitive to feature scale)
+#   - Three configurations tested varying max_iter and learning rate (eta0)
+#
+# Results:
+#   Run                  Accuracy   F1      Precision  Recall   Train Acc  Duration
+#   baseline (eta0=1.0)  0.9183     0.1106  0.4587     0.0629   0.9200     7.3s
+#   more iterations      0.9183     0.1106  0.4587     0.0629   0.9200     6.0s
+#   lower lr (eta0=0.1)  0.9065     0.2541  0.3568     0.1974   0.9087     6.3s
+#
+# Analysis:
+#   The Perceptron performs poorly on this dataset. Despite high accuracy (0.9183),
+#   F1 is very low (0.1106) due to class imbalance — the model predicts almost all
+#   songs as non-hits, giving a near-zero recall for the hit class (0.0629).
+#   Increasing max_iter from 100 to 200 has no effect, confirming the model has
+#   already converged. Lowering eta0 to 0.1 slightly improves F1 (0.2541) and
+#   recall (0.1974) at the cost of accuracy. The Perceptron's linear decision
+#   boundary is insufficient for this non-linearly separable dataset.
+# =============================================================================

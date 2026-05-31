@@ -92,10 +92,31 @@ for exp in experiments:
 
 print("\nAll experiments completed!")
 
-# ## Experiment 7 — AdaBoost Regressor
+# Experiment 7 — AdaBoost Regressor
 #
-# This experiment applied AdaBoost Regressor to predict log1p(streams).
-# AdaBoost works by sequentially training weak learners (shallow Decision Trees)
-# where each new tree focuses more on the samples that previous trees got wrong.
-# A DecisionTreeRegressor with max_depth=5 was used as the base estimator.
-# Two values of n_estimators were tested (50, 100) with learning_rate=0.1.
+# Goal:
+#   Predict log1p(streams) using AdaBoost Regressor. Unlike Random Forest which
+#   builds trees independently, AdaBoost trains trees sequentially — each new
+#   tree focuses more on the samples the previous trees got wrong, gradually
+#   correcting errors. A shallow DecisionTreeRegressor (max_depth=5) is used
+#   as the base estimator (weak learner).
+#
+# Setup:
+#   - 20% sample of music_regression.csv (time-based split: train < 2021, test >= 2021)
+#   - Target encoding applied to artist, genre, region
+#   - Base estimator: DecisionTreeRegressor(max_depth=5)
+#   - learning_rate=0.1 fixed across all runs
+#
+# Results:
+#   Run              RMSE      R²      Train R²   Duration
+#   n_estimators=50  0.7270    0.7135  0.7951     9.7min
+#   n_estimators=100 0.7358    0.7066  0.7907     23.7min
+#
+# Analysis:
+#   Surprisingly, n_estimators=50 outperforms n_estimators=100 on both RMSE
+#   (0.7270 vs 0.7358) and R² (0.7135 vs 0.7066), suggesting the model begins
+#   to overfit after 50 trees with this learning rate. Training time more than
+#   doubles (9.7min → 23.7min) for a worse result, making n_estimators=50 the
+#   better choice. Compared to Random Forest (RMSE=0.6141), AdaBoost performs
+#   noticeably worse on this dataset, likely because sequential boosting is more
+#   sensitive to noisy data such as stream counts.

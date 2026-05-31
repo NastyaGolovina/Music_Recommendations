@@ -111,10 +111,31 @@ with mlflow.start_run(run_name="RandomForest - tree visualization"):
 
 print("Random Forest tree visualization saved.")
 
-# ## Experiment 6 — Random Forest Regressor
+# =============================================================================
+# Experiment 6 — Random Forest Regressor
+# =============================================================================
 #
-# This experiment applied a Random Forest Regressor to predict log1p(streams).
-# Random Forest builds multiple decision trees and averages their predictions,
-# which reduces overfitting compared to a single Decision Tree.
-# Two values of n_estimators were tested (50, 100) to compare performance vs training time.
-# n_jobs=-1 uses all available CPU cores to speed up training.
+# Goal:
+#   Predict log1p(streams) using a Random Forest Regressor. Random Forest is an
+#   ensemble method that builds multiple independent decision trees and averages
+#   their predictions, reducing overfitting compared to a single Decision Tree.
+#
+# Setup:
+#   - 20% sample of music_regression.csv (time-based split: train < 2021, test >= 2021)
+#   - Target encoding applied to artist, genre, region
+#   - max_depth=10, min_samples_leaf=50 fixed across all runs
+#   - n_jobs=-1 to use all available CPU cores
+#
+# Results:
+#   Run              RMSE      R²      Train R²   Duration
+#   n_estimators=50  0.6141    0.7956  0.8607     2.6min
+#   n_estimators=100 0.6141    0.7956  0.8608     5.3min
+#
+# Analysis:
+#   Both configurations produce nearly identical RMSE and R², meaning doubling
+#   the number of trees (50 → 100) gives no meaningful accuracy gain while
+#   doubling training time. n_estimators=50 is therefore the more efficient choice.
+#   Compared to the single Decision Tree (max_depth=10, RMSE=0.6220), Random Forest
+#   improves RMSE slightly (0.6141) with better generalisation due to averaging.
+#   One tree from the forest was visualised (max_depth=4) and saved as a PNG.
+# =============================================================================

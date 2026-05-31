@@ -155,11 +155,35 @@ with mlflow.start_run(run_name="GaussianNB - GridSearchCV"):
 
 print("\nAll experiments completed!")
 
-# ## Experiment 4 — Gaussian Naive Bayes Classifier
+# =============================================================================
+# Experiment 4 — Gaussian Naive Bayes Classifier
+# =============================================================================
 #
-# This experiment applied Gaussian Naive Bayes to classify songs as hits or not hits.
-# GaussianNB assumes each feature follows a Gaussian (normal) distribution and predicts
-# the class with the highest probability using Bayes theorem.
-# It is a fast and simple probabilistic model that works well as a baseline classifier.
-# Three values of var_smoothing were tested to control the stability of the model.
-# GaussianNB is particularly useful when the dataset is large since it trains very quickly.
+# Goal:
+#   Classify songs as hits (is_hit=1) or not (is_hit=0) using Gaussian Naive Bayes.
+#   GaussianNB is a probabilistic model that assumes each feature follows a Gaussian
+#   (normal) distribution and predicts the class with the highest posterior probability
+#   using Bayes' theorem. It is fast, simple, and works well as a baseline classifier.
+#
+# Setup:
+#   - 10% sample of music_classification.csv (time-based split: train < 2021, test >= 2021)
+#   - Target encoding applied to artist, genre, region
+#   - StandardScaler applied (GaussianNB benefits from normalised feature distributions)
+#   - GridSearchCV (cv=5, scoring=F1) used for hyperparameter optimisation
+#
+# Results:
+#   Run                        Accuracy   F1      Precision  Recall   Train Acc  Duration
+#   baseline (var=1e-9)        0.9360     0.5677  0.6234     0.5212   0.9439     3.8s
+#   smoothing=1e-6             0.9360     0.5677  0.6234     0.5212   0.9439     2.9s
+#   smoothing=1e-3             0.9360     0.5675  0.6235     0.5208   0.9439     2.9s
+#   GridSearchCV (best=1e-9)   0.9351     0.5394  0.6312     0.4709   —          276ms
+#
+# Analysis:
+#   All three smoothing values produce virtually identical results, meaning
+#   var_smoothing has negligible impact on this dataset. Overall accuracy is high
+#   (0.9360) but is misleading due to class imbalance — the model struggles with
+#   the minority hit class, reflected in a low F1 (0.5677) and recall (0.5212).
+#   GridSearchCV confirmed var_smoothing=1e-9 as optimal with a best CV F1 of 0.6058.
+#   GaussianNB trains extremely fast (under 4s) making it a useful baseline, but
+#   its assumption of feature independence limits performance on correlated features.
+# =============================================================================

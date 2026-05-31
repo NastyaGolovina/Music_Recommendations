@@ -114,12 +114,30 @@ with mlflow.start_run(run_name="DecisionTree - tree visualization"):
 
 print("Tree visualization saved.")
 
-
-# ## Experiment 5 — Decision Tree Regressor
+# Experiment 5 — Decision Tree Regressor
 #
-# This experiment applied a Decision Tree Regressor to predict log1p(streams).
-# Decision Trees split the data based on feature thresholds to minimize prediction error.
-# Unlike Linear Regression, Decision Trees can capture non-linear relationships.
-# Three values of max_depth were tested (5, 10, 15) to find the optimal tree depth.
-# min_samples_leaf=50 was set to avoid overfitting on small leaf nodes.
-# Decision Trees do not require feature scaling unlike KNN or Linear Regression.
+# Goal:
+#   Predict log1p(streams) using a Decision Tree Regressor. The tree recursively
+#   splits data by choosing the feature and threshold that minimises MSE at each
+#   node (MSE is the regression equivalent of Gini used in classification trees).
+#   Unlike linear models, decision trees capture non-linear relationships and
+#   require no feature scaling.
+#
+# Setup:
+#   - 20% sample of music_regression.csv (time-based split: train < 2021, test >= 2021)
+#   - Target encoding applied to artist, genre, region
+#   - min_samples_leaf=50 to prevent overfitting on very small leaf nodes
+#
+# Results:
+#   Run                    RMSE      R²      Train R²   Duration
+#   max_depth=5            0.7304    0.7108  0.7824     29.2s
+#   max_depth=10           0.6220    0.7903  0.8562     36.1s
+#   max_depth=15           0.5877    0.8128  0.8879     40.9s
+#
+# Analysis:
+#   Deeper trees improve both RMSE and R² on the test set. max_depth=15 achieves
+#   the best test performance (RMSE=0.5877, R²=0.8128). However, the growing gap
+#   between training R² (0.8879) and test R² (0.8128) at depth 15 indicates the
+#   tree is beginning to overfit. max_depth=10 offers a good balance between
+#   accuracy and generalisation.
+#   A tree with max_depth=5 was visualised and saved as a PNG for interpretability.

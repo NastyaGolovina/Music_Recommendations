@@ -110,12 +110,35 @@ for exp in experiments:
 
 print("\nAll experiments completed!")
 
-# ## Experiment 8 — AdaBoost Classifier
+# =============================================================================
+# Experiment 8 — AdaBoost Classifier
+# =============================================================================
 #
-# This experiment applied AdaBoost Classifier to predict hit songs.
-# AdaBoost works by sequentially training weak learners (shallow Decision Trees)
-# where each new tree focuses more on the samples that previous trees misclassified.
-# A DecisionTreeClassifier with max_depth=3 was used as the base estimator.
-# Three configurations were tested varying n_estimators and learning_rate.
-# AdaBoost is an ensemble method that typically outperforms a single Decision Tree
-# by combining multiple weak learners into a strong classifier.
+# Goal:
+#   Classify songs as hits (is_hit=1) or not (is_hit=0) using AdaBoost.
+#   AdaBoost trains weak learners (shallow Decision Trees) sequentially — each
+#   new tree focuses more on the samples previously misclassified, combining
+#   them into a strong classifier. A DecisionTreeClassifier (max_depth=3,
+#   Gini criterion) is used as the base estimator.
+#
+# Setup:
+#   - 20% sample of music_classification.csv (time-based split: train < 2021, test >= 2021)
+#   - Target encoding applied to artist, genre, region
+#   - No scaling needed (tree-based base estimator)
+#   - Three configurations tested varying n_estimators and learning_rate
+#
+# Results:
+#   Run                      Accuracy   F1      Precision  Recall   Train Acc  Duration
+#   n=50,  lr=0.1            0.9443     0.6005  0.7139     0.5182   0.9615     5.3min
+#   n=100, lr=0.1            0.9457     0.6311  0.6989     0.5753   0.9623     9.7min
+#   n=50,  lr=1.0            0.9480     0.6819  0.6737     0.6903   0.9706     4.8min
+#
+# Analysis:
+#   The best configuration is n=50 with learning_rate=1.0, achieving the highest
+#   F1 (0.6819) and recall (0.6903) while also being faster than n=100 (4.8min vs 9.7min).
+#   A higher learning rate makes each tree contribute more aggressively, which
+#   improves recall on the minority hit class. Compared to GaussianNB (F1=0.5677)
+#   and Perceptron (F1=0.1106), AdaBoost is significantly stronger. However the
+#   gap between training accuracy (0.9706) and test accuracy (0.9480) indicates
+#   some overfitting, especially at lr=1.0.
+# =============================================================================
